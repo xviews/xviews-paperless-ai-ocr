@@ -56,7 +56,15 @@ jobs:
                   self.reply({"object": "list", "data": [{"id": "test-vision", "object": "model"}]})
               def do_POST(self):
                   global count
-                  data = self.rfile.read(int(self.headers["Content-Length"])).decode()
+                  # .NET schickt JSON ohne Content-Length in Stücken (chunked)
+                  if self.headers["Content-Length"]:
+                      data = self.rfile.read(int(self.headers["Content-Length"]))
+                  else:
+                      data = b""
+                      while (size := int(self.rfile.readline().strip(), 16)):
+                          data += self.rfile.read(size); self.rfile.readline()
+                      self.rfile.readline()
+                  data = data.decode()
                   count += 1
                   m = re.search(r"data:image/png;base64,([A-Za-z0-9+/=]+)", data)
                   if m:
