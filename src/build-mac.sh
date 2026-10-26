@@ -46,7 +46,13 @@ for arch in arm64 x64; do
   mkdir -p "$stage"
   cp -R "$app" "$stage/"
   ln -s /Applications "$stage/Applications"
-  hdiutil create -volname "$name" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$out/XviewsPaperlessAiOcr-mac-$arch.dmg" >/dev/null
+  # hdiutil meldet auf den Macs von GitHub manchmal "Resource busy", darum bis zu fünf Versuche
+  for try in 1 2 3 4 5; do
+    hdiutil create -volname "$name" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$out/XviewsPaperlessAiOcr-mac-$arch.dmg" >/dev/null && break
+    [ $try -lt 5 ] || exit 1
+    echo "hdiutil fehlgeschlagen, neuer Versuch in 10 Sekunden"
+    sleep 10
+  done
 
   echo "Gebaut: $out/XviewsPaperlessAiOcr-mac-$arch.zip und .dmg ($version)"
 done
