@@ -1,0 +1,177 @@
+# Funktionstest der Mac-Version auf einem macOS-Rechner von GitHub (nur von Hand: Actions → Mac-Test → Run workflow).
+# Baut die App, startet sie aus der DMG, schickt wie Paperless einen zweiseitigen Testbrief über die Azure-Schnittstelle
+# und prüft Text, Seitengrößen und das durchsuchbare PDF. Statt eines echten KI-Modells antwortet ein kleiner
+# OpenAI-kompatibler Ersatzserver mit festem Text und speichert die Seitenbilder, die PDFium gerendert hat.
+# Bildschirmfotos, Seitenbilder, Ergebnis-PDF und Protokoll liegen danach als Download unter dem Lauf.
+name: Mac-Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      OUT: ${{ github.workspace }}/test-out
+      KEY: mac-test-key
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Bauen
+        run: bash src/build-mac.sh
+
+      - name: Aus der DMG holen
+        run: |
+          mkdir -p "$OUT"
+          arch=$([ "$(uname -m)" = arm64 ] && echo arm64 || echo x64)
+          hdiutil attach -nobrowse -readonly -mountpoint /tmp/dmg "app/mac/XviewsPaperlessAiOcr-mac-$arch.dmg"
+          ls -la /tmp/dmg
+          test -L /tmp/dmg/Applications
+          cp -R "/tmp/dmg/Xviews Paperless AI-OCR.app" /tmp/
+          hdiutil detach /tmp/dmg
+          codesign --verify --deep --strict "/tmp/Xviews Paperless AI-OCR.app"
+          echo "Aus der DMG geholt und Signatur geprüft ($arch)"
+
+      - name: Ersatz-KI-Server und Testbrief vorbereiten
+        run: |
+          cat > /tmp/fake_ai.py <<'EOF'
+          # OpenAI-kompatibler Ersatzserver: ein Modell "test-vision", antwortet mit festem Text, speichert jedes Bild.
+          import base64, json, os, re, sys
+          from http.server import BaseHTTPRequestHandler, HTTPServer
+          out = sys.argv[1]; count = 0
+          class H(BaseHTTPRequestHandler):
+              def reply(self, obj):
+                  body = json.dumps(obj).encode()
+                  self.send_response(200); self.send_header("Content-Type", "application/json")
+                  self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+              def do_GET(self):
+                  self.reply({"object": "list", "data": [{"id": "test-vision", "object": "model"}]})
+              def do_POST(self):
+                  global count
+                  data = self.rfile.read(int(self.headers["Content-Length"])).decode()
+                  count += 1
+                  m = re.search(r"data:image/png;base64,([A-Za-z0-9+/=]+)", data)
+                  if m:
+                      open(os.path.join(out, f"seite-{count}.png"), "wb").write(base64.b64decode(m.group(1)))
+                  self.reply({"choices": [{"message": {"role": "assistant", "content": f"Hallo Paperless\nMac-Test Seite {count} äöüß"}}]})
+          HTTPServer(("127.0.0.1", 8080), H).serve_forever()
+          EOF
+
+          cat > /tmp/make_pdf.py <<'EOF'
+          # Zweiseitiges A4-PDF mit etwas Text und einem Rahmen, ohne Zusatzpakete.
+          import sys
+          pages = 2; objs = []
+          objs.append("<< /Type /Catalog /Pages 2 0 R >>")
+          kids = " ".join(f"{4 + 2 * i} 0 R" for i in range(pages))
+          objs.append(f"<< /Type /Pages /Kids [{kids}] /Count {pages} >>")
+          objs.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+          for i in range(pages):
+              stream = f"BT /F1 28 Tf 72 740 Td (Testbrief Seite {i + 1}) Tj ET 60 60 475 722 re S"
+              objs.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents {5 + 2 * i} 0 R >>")
+              objs.append(f"<< /Length {len(stream)} >>\nstream\n{stream}\nendstream")
+          pdf = "%PDF-1.4\n"; offsets = []
+          for n, o in enumerate(objs, 1):
+              offsets.append(len(pdf)); pdf += f"{n} 0 obj\n{o}\nendobj\n"
+          xref = len(pdf)
+          pdf += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n" + "".join(f"{o:010d} 00000 n \n" for o in offsets)
+          pdf += f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n"
+          open(sys.argv[1], "w", encoding="latin-1").write(pdf)
+          EOF
+          python3 /tmp/make_pdf.py "$OUT/testbrief.pdf"
+
+          # Einstellungen wie nach der Einrichtung: OpenAI-kompatibler Server, festes Modell, fester Schlüssel
+          dir="$HOME/Library/Application Support/Xviews Paperless AI-OCR"
+          mkdir -p "$dir"
+          cat > "$dir/einstellungen.json" <<EOF
+          { "Port": 5050, "ApiKey": "$KEY", "Server": "openai", "ServerUrl": "http://127.0.0.1:8080", "Model": "test-vision" }
+          EOF
+
+      - name: App starten
+        run: |
+          python3 /tmp/fake_ai.py "$OUT" > "$OUT/ki-server.log" 2>&1 &
+          "/tmp/Xviews Paperless AI-OCR.app/Contents/MacOS/XviewsPaperlessAiOcr" --autostart > "$OUT/app-ausgabe.log" 2>&1 &
+          for i in $(seq 60); do
+            if curl -sf http://127.0.0.1:5050/ > "$OUT/start.txt"; then cat "$OUT/start.txt"; echo; exit 0; fi
+            sleep 1
+          done
+          echo "::error::Die App antwortet nach 60 Sekunden nicht auf Port 5050"
+          cat "$OUT/app-ausgabe.log"; exit 1
+
+      - name: Schnittstelle prüfen
+        run: |
+          api=http://127.0.0.1:5050/documentintelligence/documentModels/prebuilt-read
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Ocp-Apim-Subscription-Key: falsch' \
+                 -H 'Content-Type: application/json' -d '{"base64Source":""}' "$api:analyze?api-version=2024-11-30")
+          [ "$code" = 401 ] || { echo "::error::Falscher Schlüssel ergab $code statt 401"; exit 1; }
+          echo "Falscher Schlüssel: 401, richtig abgewiesen"
+
+          printf '{"base64Source":"%s"}' "$(base64 -i "$OUT/testbrief.pdf")" > /tmp/body.json
+          loc=$(curl -s -D - -o /dev/null -X POST -H "Ocp-Apim-Subscription-Key: $KEY" -H 'Content-Type: application/json' \
+                --data-binary @/tmp/body.json "$api:analyze?api-version=2024-11-30" | awk -F': ' 'tolower($1)=="operation-location"{print $2}' | tr -d '\r')
+          [ -n "$loc" ] || { echo "::error::Keine Operation-Location"; exit 1; }
+          for i in $(seq 60); do
+            sleep 2
+            curl -s -H "Ocp-Apim-Subscription-Key: $KEY" "$loc" > "$OUT/ergebnis.json"
+            status=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' "$OUT/ergebnis.json")
+            [ "$status" = succeeded ] || [ "$status" = failed ] && break
+          done
+          python3 -m json.tool "$OUT/ergebnis.json"
+          python3 - "$OUT/ergebnis.json" <<'EOF'
+          import json, sys
+          r = json.load(open(sys.argv[1]))
+          assert r["status"] == "succeeded", f"Status {r['status']}: {r.get('error')}"
+          a = r["analyzeResult"]; pages = a["pages"]
+          assert len(pages) == 2, f"{len(pages)} Seiten statt 2"
+          for p in pages:
+              assert abs(p["width"] - 8.26) < 0.05 and abs(p["height"] - 11.69) < 0.05, f"Seitengröße {p['width']} x {p['height']}"
+          assert "Mac-Test Seite 1" in a["content"] and "Mac-Test Seite 2" in a["content"], a["content"]
+          assert "äöüß" in a["content"], "Umlaute fehlen"
+          print("Ergebnis stimmt: 2 Seiten in A4, Text beider Seiten, Umlaute")
+          EOF
+
+          curl -sf -H "Ocp-Apim-Subscription-Key: $KEY" "${loc%%\?*}/pdf?api-version=2024-11-30" -o "$OUT/ergebnis.pdf"
+          head -c 5 "$OUT/ergebnis.pdf" | grep -q '%PDF-' || { echo "::error::Kein durchsuchbares PDF"; exit 1; }
+          echo "Durchsuchbares PDF: $(wc -c < "$OUT/ergebnis.pdf") Bytes"
+
+      - name: Seitenbilder von PDFium prüfen
+        run: |
+          for n in 1 2; do
+            f="$OUT/seite-$n.png"
+            [ -f "$f" ] || { echo "::error::Seitenbild $n fehlt"; exit 1; }
+            w=$(sips -g pixelWidth "$f" | awk '/pixelWidth/{print $2}'); h=$(sips -g pixelHeight "$f" | awk '/pixelHeight/{print $2}')
+            echo "Seite $n: $w x $h Pixel"
+            # A4 bei 200 dpi: 1654 x 2339
+            [ "$w" -ge 1600 ] && [ "$w" -le 1700 ] && [ "$h" -ge 2280 ] && [ "$h" -le 2400 ] || { echo "::error::Seite $n hat $w x $h"; exit 1; }
+          done
+
+      - name: Bildschirmfotos
+        if: always()
+        run: |
+          screencapture -x "$OUT/1-nach-dem-dokument.png" || echo "screencapture fehlgeschlagen"
+          # Zweiter Start bittet die laufende App, das Info-Fenster zu zeigen
+          "/tmp/Xviews Paperless AI-OCR.app/Contents/MacOS/XviewsPaperlessAiOcr" --autostart || true
+          sleep 5
+          screencapture -x "$OUT/2-info-fenster.png" || echo "screencapture fehlgeschlagen"
+
+      - name: Protokoll einsammeln und beenden
+        if: always()
+        run: |
+          cp "$HOME/Library/Application Support/Xviews Paperless AI-OCR/logs/"*.log "$OUT/" 2>/dev/null || true
+          cat "$OUT"/ocr-*.log 2>/dev/null || true
+          pkill -f XviewsPaperlessAiOcr || true
+          pkill -f fake_ai.py || true
+
+      - name: Ergebnisse ablegen
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mac-test
+          path: test-out/
