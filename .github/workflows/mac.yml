@@ -1,6 +1,6 @@
 # Baut die Mac-Version auf einem macOS-Rechner von GitHub.
-# - Release veröffentlicht: hängt beide ZIPs an das Release (die Update-Suche der App findet sie dort).
-# - Von Hand (Actions → Mac-Version → Run workflow): ZIPs nur als Download unter dem Lauf, zum Testen.
+# - Release veröffentlicht: hängt beide ZIPs (für die Update-Suche der App) und beide DMGs an das Release.
+# - Von Hand (Actions → Mac-Version → Run workflow): ZIPs und DMGs nur als Download unter dem Lauf, zum Testen.
 name: Mac-Version
 
 on:
@@ -30,11 +30,13 @@ jobs:
       - name: Als Download unter dem Lauf ablegen
         uses: actions/upload-artifact@v7
         with:
-          name: mac-zips
-          path: app/mac/*.zip
+          name: mac-version
+          path: |
+            app/mac/*.zip
+            app/mac/*.dmg
 
       - name: An das Release hängen
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" app/mac/*.zip --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" app/mac/*.zip app/mac/*.dmg --clobber

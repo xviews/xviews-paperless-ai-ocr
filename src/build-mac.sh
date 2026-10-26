@@ -1,6 +1,7 @@
 #!/bin/bash
-# Baut "../app/mac/XviewsPaperlessAiOcr-mac-arm64.zip" (Apple-Chip) und "-mac-x64.zip" (Intel).
-# Läuft nur auf einem Mac (iconutil, codesign, ditto), sonst über GitHub Actions: .github/workflows/mac.yml
+# Baut "../app/mac/XviewsPaperlessAiOcr-mac-arm64.zip" (Apple-Chip) und "-mac-x64.zip" (Intel),
+# dazu je eine .dmg zum Hineinziehen in den Programme-Ordner. Die Update-Suche der App lädt die ZIP.
+# Läuft nur auf einem Mac (iconutil, codesign, ditto, hdiutil), sonst über GitHub Actions: .github/workflows/mac.yml
 # Braucht das .NET 10 SDK: https://dotnet.microsoft.com/download
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -39,5 +40,13 @@ for arch in arm64 x64; do
   codesign --verify --deep --strict "$app"
 
   ditto -c -k --keepParent "$app" "$out/XviewsPaperlessAiOcr-mac-$arch.zip"
-  echo "Gebaut: $out/XviewsPaperlessAiOcr-mac-$arch.zip ($version)"
+
+  # Disk-Image: die App und ein Verweis auf den Programme-Ordner, damit man sie hinüberziehen kann
+  stage=bin/mac/dmg-$arch
+  mkdir -p "$stage"
+  cp -R "$app" "$stage/"
+  ln -s /Applications "$stage/Applications"
+  hdiutil create -volname "$name" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$out/XviewsPaperlessAiOcr-mac-$arch.dmg" >/dev/null
+
+  echo "Gebaut: $out/XviewsPaperlessAiOcr-mac-$arch.zip und .dmg ($version)"
 done
