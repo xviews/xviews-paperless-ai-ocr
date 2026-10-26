@@ -126,6 +126,9 @@ public static class UpdateChecker
 				hash = Convert.ToHexString(await SHA256.HashDataAsync(check)).ToLowerInvariant();
 			if (hash != asset.Sha256) throw new InvalidOperationException(T("Die Prüfsumme der heruntergeladenen Datei stimmt nicht. Das Update wurde nicht installiert.", "The checksum of the downloaded file does not match. The update was not installed."));
 
+			// Die laufende App lädt Teile erst bei Bedarf aus ihrer Datei (Mac: aus ihrem Ordner). Nach dem Tausch
+			// fände sie die für den Neustart nicht mehr ("System.Diagnostics.Process" fehlt), darum jetzt laden.
+			using (Process.GetCurrentProcess()) { }
 #if MAC
 			SwapApp(exe, tmp);
 #else

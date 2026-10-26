@@ -119,6 +119,7 @@ sealed class Updates
         }
         catch (Exception ex)
         {
+            Log.Write($"Update fehlgeschlagen: {ex}");
             Busy = false;
             Apply(latest.VersionText, latest.Url);
             if (await Dialogs.AskAsync(owner, T("Update fehlgeschlagen", "Update failed"),
