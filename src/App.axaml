@@ -1,0 +1,107 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sty="using:FluentAvalonia.Styling"
+             x:Class="XviewsPaperlessAiOcr.App"
+             RequestedThemeVariant="Default">
+
+  <!-- Ruhige Flächen, Karten mit runden Ecken, Paperless-Grün als Akzent (hell und dunkel) -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#0DFFFFFF" />
+          <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#1AFFFFFF" />
+          <SolidColorBrush x:Key="GutText" Color="#7CF2AE" />
+          <SolidColorBrush x:Key="RotText" Color="#FF8A7A" />
+          <SolidColorBrush x:Key="FeldFlaeche" Color="#14FFFFFF" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FFFFFFFF" />
+          <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#14000000" />
+          <SolidColorBrush x:Key="GutText" Color="#1F7A3A" />
+          <SolidColorBrush x:Key="RotText" Color="#B23428" />
+          <SolidColorBrush x:Key="FeldFlaeche" Color="#F2F5F3" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <!-- Akzentknöpfe: kräftiges Grün mit weißer Schrift -->
+      <SolidColorBrush x:Key="AccentButtonBackground" Color="#1F7A3A" />
+      <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#268F45" />
+      <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#18602D" />
+      <SolidColorBrush x:Key="AccentButtonForeground" Color="White" />
+      <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="White" />
+      <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#E6FFFFFF" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#1F7A3A" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#268F45" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#18602D" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#1F7A3A" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#268F45" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#18602D" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="White" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="White" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="White" />
+      <x:Double x:Key="ControlContentThemeFontSize">14</x:Double>
+      <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+      <CornerRadius x:Key="OverlayCornerRadius">12</CornerRadius>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <sty:FluentAvaloniaTheme PreferSystemTheme="True" PreferUserAccentColor="False"
+                             CustomAccentColor="#1F7A3A" UseSystemFontOnWindows="True" />
+
+    <Style Selector="Window.glas">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style Selector="TextBlock.leise">
+      <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.titel">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="TextBlock.feld">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,6,0,0" />
+    </Style>
+    <Style Selector="TextBlock.gut">
+      <Setter Property="Foreground" Value="{DynamicResource GutText}" />
+    </Style>
+    <Style Selector="TextBlock.schlecht">
+      <Setter Property="Foreground" Value="{DynamicResource RotText}" />
+    </Style>
+
+    <!-- Karten: runde Ecken, feine Kante -->
+    <Style Selector="Border.karte">
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="20,16" />
+    </Style>
+
+    <!-- Unauffällige Knöpfe, z. B. „Abbrechen“ oder Schließen-Kreuz -->
+    <Style Selector="Button.leise">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Opacity" Value="0.8" />
+    </Style>
+
+    <Style Selector="Button.rund">
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="14,6" />
+    </Style>
+
+    <Style Selector="TextBox.wert">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
+      <Setter Property="IsReadOnly" Value="True" />
+      <Setter Property="Background" Value="{DynamicResource FeldFlaeche}" />
+    </Style>
+  </Application.Styles>
+</Application>

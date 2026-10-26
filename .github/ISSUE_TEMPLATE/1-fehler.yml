@@ -1,0 +1,75 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke fürs Melden! Je genauer die Angaben, desto schneller lässt sich der Fehler finden.
+        Bitte keine persönlichen Daten (API-Schlüssel, Inhalte deiner Dokumente o. Ä.) eintragen.
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Was hast du erwartet, was ist stattdessen passiert? Fehlermeldungen bitte wörtlich einfügen.
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Wie lässt sich der Fehler nachstellen?
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: Version von Xviews Paperless AI-OCR
+      description: Steht in der App unter Info.
+      placeholder: z. B. 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: Betriebssystem
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS (Apple-Chip)
+        - macOS (Intel)
+        - Anderes
+    validations:
+      required: true
+  - type: input
+    id: umgebung
+    attributes:
+      label: Paperless, KI-Server und Modell
+      description: Paperless-Version und wie es läuft, KI-Server (Ollama, LM Studio …) mit Version, gewähltes KI-Modell, Grafikkarte bzw. Mac-Modell.
+      placeholder: z. B. Paperless-ngx 3.1.3 (Docker), Ollama 0.40, qwen2.5vl:7b, RTX 4090
+    validations:
+      required: true
+  - type: dropdown
+    id: bereich
+    attributes:
+      label: Wobei?
+      options:
+        - Einrichtung in Paperless
+        - KI-Server / Modell
+        - Texterkennung (Text falsch oder unvollständig)
+        - Durchsuchbares PDF
+        - Benachrichtigung / Autostart
+        - Update des Tools
+        - Anderes
+  - type: textarea
+    id: log
+    attributes:
+      label: Protokoll
+      description: Rechtsklick aufs Symbol (Mac: Klick aufs Symbol in der Menüleiste) → „Protokoll öffnen“ und die betroffenen Zeilen hier einfügen.
+      render: text
+  - type: textarea
+    id: bilder
+    attributes:
+      label: Screenshots
+      description: Gern per Drag & Drop hier hineinziehen. Bitte keine vertraulichen Dokumente.

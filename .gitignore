@@ -1,0 +1,18 @@
+bin/
+obj/
+*.user
+.vs/
+*.exe
+# lokal gebautes Tool, Einstellungen mit API-Schlüssel, Protokolle
+app/
+logs/
+appsettings.json
+einstellungen.json
+# Testausgaben
+test/testscan*
+test/aus/
+test/*.bmp
+assets/.*.png
+assets/.oldlog.txt
+.demo-profile/
+test/.result.txt

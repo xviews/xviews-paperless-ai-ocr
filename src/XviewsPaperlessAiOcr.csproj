@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Windows ist der Normalfall. Mac: dotnet publish -r osx-arm64 (oder osx-x64), siehe build-mac.sh -->
+  <PropertyGroup>
+    <IsMac>false</IsMac>
+    <IsMac Condition="$(RuntimeIdentifier.StartsWith('osx'))">true</IsMac>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>XviewsPaperlessAiOcr</AssemblyName>
+    <RootNamespace>XviewsPaperlessAiOcr</RootNamespace>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <Version>1.0.0</Version>
+    <Product>Xviews Paperless AI-OCR</Product>
+    <Company>Xviews</Company>
+    <Copyright>© 2026 Xviews</Copyright>
+    <Description>Lokale KI-Texterkennung für Paperless-ngx: gibt sich als Azure Document Intelligence aus und liest Scans mit einem lokalen Vision-Modell (Ollama, LM Studio …)</Description>
+    <SelfContained>true</SelfContained>
+    <DebugType>none</DebugType>
+    <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsMac)' != 'true'">
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <ApplicationIcon>..\assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- One exe that runs without an installed .NET -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <!-- Mac: alle Dateien landen in "….app/Contents/MacOS" und werden dort gemeinsam signiert, darum keine Einzeldatei -->
+  <PropertyGroup Condition="'$(IsMac)' == 'true'">
+    <TargetFramework>net10.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);MAC</DefineConstants>
+    <!-- PDFium-Aufrufe in PageRenderer.Mac.cs -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsMac)' != 'true'">
+    <Compile Remove="**\*.Mac.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsMac)' == 'true'">
+    <Compile Remove="**\*.Windows.cs" />
+    <!-- PDF-Seiten als Bild (Windows nimmt dafür Windows.Data.Pdf) -->
+    <PackageReference Include="bblanchon.PDFium.macOS" Version="158.0.8125" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="FluentAvaloniaUI" Version="3.1.0" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+  </ItemGroup>
+
+  <!-- The graphics libraries drop .pdb files next to the exe -->
+  <Target Name="RemovePdb" AfterTargets="Publish">
+    <ItemGroup>
+      <_PdbFiles Include="$(PublishDir)*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(_PdbFiles)" />
+  </Target>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/Licenses.txt" LogicalName="Licenses.txt" />
+    <EmbeddedResource Include="..\assets\deinstall.ico" LogicalName="deinstall.ico" />
+    <AvaloniaResource Include="Assets/xviews.png" />
+    <AvaloniaResource Include="..\assets\app.ico" Link="Assets\app.ico" />
+    <AvaloniaResource Include="..\assets\logo-128.png" Link="Assets\logo.png" />
+  </ItemGroup>
+
+</Project>
