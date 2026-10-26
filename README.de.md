@@ -33,7 +33,7 @@
 Tesseract, die eingebaute Texterkennung von Paperless-ngx, stolpert über Tabellen, Umlaute, schiefe Scans und Briefköpfe. Paperless kann die Texterkennung zwar an einen externen Dienst abgeben, aber nur an Microsofts Cloud-Dienst Azure. **Dieses Tool gibt sich gegenüber Paperless als Azure aus** und lässt die Seiten stattdessen von einem KI-Modell deiner Wahl lesen, über [Ollama](https://ollama.com), [LM Studio](https://lmstudio.ai) oder einen anderen OpenAI-kompatiblen Server, auf deinem eigenen Windows-PC oder Mac. Paperless bekommt den Text und ein durchsuchbares PDF zurück, als käme beides aus der Cloud.
 
 <p align="center">
-  <img src="bilder/1-einrichtung.png" width="760" alt="Info-Fenster mit Modellauswahl und allen Werten für Paperless zum Kopieren">
+  <img src="bilder/de/1-einrichtung.png" width="760" alt="Info-Fenster mit Modellauswahl und allen Werten für Paperless zum Kopieren">
 </p>
 
 ## So geht's
@@ -88,12 +88,12 @@ Tesseract, die eingebaute Texterkennung von Paperless-ngx, stolpert über Tabell
 
 <table>
   <tr>
-    <td width="50%"><img src="bilder/2-verhalten-updates.png" alt="Schalter für Autostart, Benachrichtigungen, Ollama starten und beenden, Updates"></td>
-    <td width="50%"><img src="bilder/3-hinweise-lizenzen.png" alt="Datenordner, Hinweise, Lizenz und Komponenten"></td>
+    <td width="50%"><img src="bilder/de/2-verhalten-programm.png" alt="Schalter für Autostart, Benachrichtigungen und Ollama, Updates, Installation und Datenordner"></td>
+    <td width="50%"><img src="bilder/de/3-statusfenster.png" alt="Statusfenster nach Klick aufs Symbol: bereit, KI-Server, Modell, letztes Dokument"></td>
   </tr>
   <tr>
-    <td align="center">Verhalten &amp; Updates</td>
-    <td align="center">Daten, Hinweise &amp; Lizenz</td>
+    <td align="center">Verhalten, Updates &amp; Installation</td>
+    <td align="center">Statusfenster (Klick aufs Symbol)</td>
   </tr>
 </table>
 

@@ -35,7 +35,7 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 > **Language:** The app speaks English or German. It follows your system language: German on a German system, English everywhere else.
 
 <p align="center">
-  <img src="bilder/1-einrichtung.png" width="760" alt="Info window with model selection and all values for Paperless ready to copy">
+  <img src="bilder/en/1-setup.png" width="760" alt="Info window with model selection and all values for Paperless ready to copy">
 </p>
 
 ## How it works
@@ -90,12 +90,12 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 
 <table>
   <tr>
-    <td width="50%"><img src="bilder/2-verhalten-updates.png" alt="Switches for autostart, notifications, starting and stopping Ollama, updates"></td>
-    <td width="50%"><img src="bilder/3-hinweise-lizenzen.png" alt="Data folder, notes, license and components"></td>
+    <td width="50%"><img src="bilder/en/2-behaviour-app.png" alt="Switches for autostart, notifications and Ollama, updates, installation and data folder"></td>
+    <td width="50%"><img src="bilder/en/3-status-window.png" alt="Status window after a click on the icon: ready, AI server, model, last document"></td>
   </tr>
   <tr>
-    <td align="center">Behaviour &amp; updates</td>
-    <td align="center">Data, notes &amp; license</td>
+    <td align="center">Behaviour, updates &amp; installation</td>
+    <td align="center">Status window (click on the icon)</td>
   </tr>
 </table>
 
@@ -117,7 +117,7 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 <summary><b>First start on Windows</b></summary>
 
 - If SmartScreen says "Windows protected your PC", click **"More info"** and then **"Run anyway"**. The EXE is not signed because a certificate costs money.
-- The tool asks whether to install itself. **"Installieren"** (Install) puts it in `%LOCALAPPDATA%\Programs\Xviews Paperless AI-OCR` and the Start menu. **"Ohne Installation starten"** (Start without installing) leaves it where it is.
+- The tool asks whether to install itself. **"Install"** puts it in `%LOCALAPPDATA%\Programs\Xviews Paperless AI-OCR` and the Start menu. **"Start without installing"** leaves it where it is.
 - The info window opens. Under **KI-Modell** (AI model) click "Modelle suchen" (Find models) if none is selected yet.
 - The tool then sits in the notification area at the bottom right. A click shows at a glance whether everything is running and what was recognized last, a right-click opens the menu. Setup is under "Settings" or "Info and setup".
 - If the Windows firewall asks, allow access on the **private network**, otherwise Paperless cannot reach the tool.
@@ -129,7 +129,7 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 
 - Double-click the zip file to unpack it.
 - If macOS says the app cannot be opened because Apple cannot check it: go to *System Settings → Privacy & Security* and click **"Open Anyway"** at the bottom. The app is not notarized by Apple because that requires a paid developer account.
-- The tool asks whether to install itself. **"Installieren"** (Install) copies it to the *Applications* folder (to *~/Applications* if you cannot write there). **"Ohne Installation starten"** (Start without installing) leaves it where it is.
+- The tool asks whether to install itself. **"Install"** copies it to the *Applications* folder (to *~/Applications* if you cannot write there). **"Start without installing"** leaves it where it is.
 - The tool then sits as an icon in the menu bar at the top, without a Dock icon. A click on the icon opens the menu.
 - If macOS asks whether the app may accept incoming connections, click **"Allow"**, otherwise Paperless cannot reach the tool.
 
