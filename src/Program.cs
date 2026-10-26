@@ -76,7 +76,12 @@ static class Program
         int code;
         try
         {
-            code = AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace().StartWithClassicDesktopLifetime(args);
+            var builder = AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace();
+#if MAC
+            // Nur Symbol in der Menüleiste: Avalonia setzt sonst ein Dock-Symbol, auch gegen LSUIElement in der Info.plist
+            builder = builder.With(new MacOSPlatformOptions { ShowInDock = false });
+#endif
+            code = builder.StartWithClassicDesktopLifetime(args);
         }
         finally
         {
