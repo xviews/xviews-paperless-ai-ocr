@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr.exe"><img src="https://img.shields.io/github/v/release/xviews/xviews-paperless-ai-ocr?label=Download%20for%20Windows&style=for-the-badge&logo=windows&logoColor=white&color=2ea44f" alt="Download for Windows"></a>
+  <a href="https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr.exe"><img src="https://img.shields.io/github/v/release/xviews/xviews-paperless-ai-ocr?label=Download%20for%20Windows&style=for-the-badge&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0wIDBoMTEuNHYxMS40SDB6TTEyLjYgMEgyNHYxMS40SDEyLjZ6TTAgMTIuNmgxMS40VjI0SDB6TTEyLjYgMTIuNkgyNFYyNEgxMi42eiIvPjwvc3ZnPg%3D%3D&color=2ea44f" alt="Download for Windows"></a>
   <a href="#download"><img src="https://img.shields.io/github/v/release/xviews/xviews-paperless-ai-ocr?label=Download%20for%20Mac&style=for-the-badge&logo=apple&logoColor=white&color=2ea44f" alt="Download for Mac"></a>
 </p>
 
@@ -101,13 +101,15 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 
 ## Download
 
-| File | For | Note |
+| System | Download | Note |
 |---|---|---|
-| [`XviewsPaperlessAiOcr.exe`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr.exe) | Windows 10 / 11 (64-bit) | Installer and tool in one file, about 68 MB |
-| [`XviewsPaperlessAiOcr-mac-arm64.dmg`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-arm64.dmg) | Mac with Apple chip (M1 and later), macOS 12 or later | Open, drag the app into Applications |
-| [`XviewsPaperlessAiOcr-mac-x64.dmg`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-x64.dmg) | Mac with Intel processor, macOS 12 or later | Open, drag the app into Applications |
+| **Windows** 10 / 11 (64-bit) | [![XviewsPaperlessAiOcr.exe](https://img.shields.io/badge/Windows-EXE-0078D6?logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0wIDBoMTEuNHYxMS40SDB6TTEyLjYgMEgyNHYxMS40SDEyLjZ6TTAgMTIuNmgxMS40VjI0SDB6TTEyLjYgMTIuNkgyNFYyNEgxMi42eiIvPjwvc3ZnPg%3D%3D)](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr.exe) | Installer and tool in one file, about 68 MB |
+| **Mac** with Apple chip (M1 and later), macOS 12 or later | [![XviewsPaperlessAiOcr-mac-arm64.dmg](https://img.shields.io/badge/macOS-DMG-2ea44f?logo=apple&logoColor=white)](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-arm64.dmg) [![XviewsPaperlessAiOcr-mac-arm64.zip](https://img.shields.io/badge/macOS-ZIP-6e7781?logo=apple&logoColor=white)](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-arm64.zip) | DMG or ZIP, same app |
+| **Mac** with Intel processor, macOS 12 or later | [![XviewsPaperlessAiOcr-mac-x64.dmg](https://img.shields.io/badge/macOS-DMG-2ea44f?logo=apple&logoColor=white)](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-x64.dmg) [![XviewsPaperlessAiOcr-mac-x64.zip](https://img.shields.io/badge/macOS-ZIP-6e7781?logo=apple&logoColor=white)](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-x64.zip) | DMG or ZIP, same app |
 
-**Requirements:** a graphics card or Mac with enough memory for the chosen model. For the Mac the same app is also available as a zip file. ➡️ All versions, zip files and checksums under **[Releases](../../releases)**.
+**Mac: DMG or ZIP?** Both contain the same app. The DMG opens a window: drag the app onto *Applications*. The ZIP unpacks with a double-click; the tool then offers to move itself into *Applications*.
+
+**Requirements:** a graphics card or Mac with enough memory for the chosen model. ➡️ All versions and checksums under **[Releases](../../releases)**.
 
 **Tested with:** Paperless-ngx 3.1.3 (Home Assistant add-on), Ollama 0.40 (both modes) on an RTX 5090. One page takes about 7 to 20 seconds, plus loading the model for the first document. The Mac version is new.
 
