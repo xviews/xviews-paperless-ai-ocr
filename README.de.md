@@ -102,14 +102,14 @@ Tesseract, die eingebaute Texterkennung von Paperless-ngx, stolpert über Tabell
 | Datei | Für | Hinweis |
 |---|---|---|
 | [`XviewsPaperlessAiOcr.exe`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr.exe) | Windows 10 / 11 (64 Bit) | Installer und Tool in einer Datei, ca. 68 MB |
-| [`XviewsPaperlessAiOcr-mac-arm64.zip`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-arm64.zip) | Mac mit Apple-Chip (M1 und neuer), macOS 12 oder neuer | Entpacken, App öffnen |
-| [`XviewsPaperlessAiOcr-mac-x64.zip`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-x64.zip) | Mac mit Intel-Prozessor, macOS 12 oder neuer | Entpacken, App öffnen |
+| [`XviewsPaperlessAiOcr-mac-arm64.dmg`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-arm64.dmg) | Mac mit Apple-Chip (M1 und neuer), macOS 12 oder neuer | Öffnen, App in „Programme“ ziehen |
+| [`XviewsPaperlessAiOcr-mac-x64.dmg`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-x64.dmg) | Mac mit Intel-Prozessor, macOS 12 oder neuer | Öffnen, App in „Programme“ ziehen |
 
-**Voraussetzungen:** eine Grafikkarte bzw. ein Mac mit genug Speicher für das gewählte Modell. ➡️ Alle Versionen und Prüfsummen unter **[Releases](../../releases)**.
+**Voraussetzungen:** eine Grafikkarte bzw. ein Mac mit genug Speicher für das gewählte Modell. Für den Mac gibt es dieselbe App auch als ZIP-Datei. ➡️ Alle Versionen, ZIP-Dateien und Prüfsummen unter **[Releases](../../releases)**.
 
 **Getestet mit:** Paperless-ngx 3.1.3 (Home-Assistant-Add-on), Ollama 0.40 (beide Modi) auf einer RTX 5090. Eine Seite dauert etwa 7 bis 20 Sekunden, beim ersten Dokument kommt das Laden des Modells dazu. Die Mac-Version ist neu.
 
-**Sicherheit:** Die Prüfsumme (SHA-256) jeder Datei steht auf der Release-Seite. Unter Windows prüfst du sie mit `Get-FileHash .\XviewsPaperlessAiOcr.exe` in PowerShell, am Mac mit `shasum -a 256 XviewsPaperlessAiOcr-mac-arm64.zip` im Terminal. Der Release-Text verlinkt außerdem das VirusTotal-Ergebnis.
+**Sicherheit:** Die Prüfsumme (SHA-256) jeder Datei steht auf der Release-Seite. Unter Windows prüfst du sie mit `Get-FileHash .\XviewsPaperlessAiOcr.exe` in PowerShell, am Mac mit `shasum -a 256 XviewsPaperlessAiOcr-mac-arm64.dmg` im Terminal. Der Release-Text verlinkt außerdem das VirusTotal-Ergebnis.
 
 <details>
 <summary><b>Beim ersten Start unter Windows</b></summary>
@@ -125,7 +125,7 @@ Tesseract, die eingebaute Texterkennung von Paperless-ngx, stolpert über Tabell
 <details>
 <summary><b>Beim ersten Start am Mac</b></summary>
 
-- Die ZIP-Datei per Doppelklick entpacken.
+- Die DMG-Datei öffnen und die App auf *Applications* (Programme) ziehen. Mit der ZIP-Datei: per Doppelklick entpacken.
 - Meldet macOS, dass die App nicht geöffnet werden kann, weil Apple sie nicht prüfen konnte: unter *Systemeinstellungen → Datenschutz & Sicherheit* unten auf **„Dennoch öffnen“** klicken. Die App ist nicht von Apple beglaubigt, weil das ein kostenpflichtiges Entwicklerkonto braucht.
 - Das Tool fragt, ob es sich installieren soll. **„Installieren“** kopiert es in den Ordner *Programme* (ohne Schreibrecht dort nach *~/Programme*). **„Ohne Installation starten“** lässt es, wo es ist.
 - Das Tool sitzt danach als Symbol oben in der Menüleiste, ohne Symbol im Dock. Ein Klick auf das Symbol öffnet das Menü.
@@ -179,7 +179,7 @@ Enthaltene Komponenten: [PdfPig](https://github.com/UglyToad/PdfPig) 0.1.16 (Apa
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) installieren.
 - **Windows:** `src\build.cmd` ausführen. Die fertige `XviewsPaperlessAiOcr.exe` landet in `app\`.
-- **Mac:** `src/build-mac.sh` auf einem Mac ausführen. Die beiden ZIPs (Apple-Chip und Intel) landen in `app/mac/`. Ohne Mac baut sie der GitHub-Workflow *Mac-Version* (`.github/workflows/mac.yml`), bei jedem Release automatisch.
+- **Mac:** `src/build-mac.sh` auf einem Mac ausführen. ZIPs und DMGs (Apple-Chip und Intel) landen in `app/mac/`. Ohne Mac baut sie der GitHub-Workflow *Mac-Version* (`.github/workflows/mac.yml`), bei jedem Release automatisch.
 - Dateien mit `.Windows.cs` bzw. `.Mac.cs` im Namen gehören nur zur jeweiligen Version, alles andere teilen sich beide.
 - `test\` enthält einen Ende-zu-Ende-Test mit dem offiziellen Azure-SDK: `dotnet run --project test -- http://localhost:5050 <API-Schlüssel> <Ordner>`.
 

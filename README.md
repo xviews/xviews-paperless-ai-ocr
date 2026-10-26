@@ -104,14 +104,14 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 | File | For | Note |
 |---|---|---|
 | [`XviewsPaperlessAiOcr.exe`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr.exe) | Windows 10 / 11 (64-bit) | Installer and tool in one file, about 68 MB |
-| [`XviewsPaperlessAiOcr-mac-arm64.zip`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-arm64.zip) | Mac with Apple chip (M1 and later), macOS 12 or later | Unzip, open the app |
-| [`XviewsPaperlessAiOcr-mac-x64.zip`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-x64.zip) | Mac with Intel processor, macOS 12 or later | Unzip, open the app |
+| [`XviewsPaperlessAiOcr-mac-arm64.dmg`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-arm64.dmg) | Mac with Apple chip (M1 and later), macOS 12 or later | Open, drag the app into Applications |
+| [`XviewsPaperlessAiOcr-mac-x64.dmg`](https://github.com/xviews/xviews-paperless-ai-ocr/releases/latest/download/XviewsPaperlessAiOcr-mac-x64.dmg) | Mac with Intel processor, macOS 12 or later | Open, drag the app into Applications |
 
-**Requirements:** a graphics card or Mac with enough memory for the chosen model. ➡️ All versions and checksums under **[Releases](../../releases)**.
+**Requirements:** a graphics card or Mac with enough memory for the chosen model. For the Mac the same app is also available as a zip file. ➡️ All versions, zip files and checksums under **[Releases](../../releases)**.
 
 **Tested with:** Paperless-ngx 3.1.3 (Home Assistant add-on), Ollama 0.40 (both modes) on an RTX 5090. One page takes about 7 to 20 seconds, plus loading the model for the first document. The Mac version is new.
 
-**Security:** the checksum (SHA-256) of every file is shown on the release page. On Windows check it with `Get-FileHash .\XviewsPaperlessAiOcr.exe` in PowerShell, on the Mac with `shasum -a 256 XviewsPaperlessAiOcr-mac-arm64.zip` in Terminal. The release notes also link the VirusTotal result.
+**Security:** the checksum (SHA-256) of every file is shown on the release page. On Windows check it with `Get-FileHash .\XviewsPaperlessAiOcr.exe` in PowerShell, on the Mac with `shasum -a 256 XviewsPaperlessAiOcr-mac-arm64.dmg` in Terminal. The release notes also link the VirusTotal result.
 
 <details>
 <summary><b>First start on Windows</b></summary>
@@ -127,7 +127,7 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 <details>
 <summary><b>First start on the Mac</b></summary>
 
-- Double-click the zip file to unpack it.
+- Open the dmg file and drag the app onto *Applications*. With the zip file: double-click to unpack it.
 - If macOS says the app cannot be opened because Apple cannot check it: go to *System Settings → Privacy & Security* and click **"Open Anyway"** at the bottom. The app is not notarized by Apple because that requires a paid developer account.
 - The tool asks whether to install itself. **"Install"** copies it to the *Applications* folder (to *~/Applications* if you cannot write there). **"Start without installing"** leaves it where it is.
 - The tool then sits as an icon in the menu bar at the top, without a Dock icon. A click on the icon opens the menu.
@@ -181,7 +181,7 @@ Included components: [PdfPig](https://github.com/UglyToad/PdfPig) 0.1.16 (Apache
 
 - Install the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 - **Windows:** run `src\build.cmd`. The finished `XviewsPaperlessAiOcr.exe` ends up in `app\`.
-- **Mac:** run `src/build-mac.sh` on a Mac. Both zips (Apple chip and Intel) end up in `app/mac/`. Without a Mac, the GitHub workflow *Mac-Version* (`.github/workflows/mac.yml`) builds them, automatically for every release.
+- **Mac:** run `src/build-mac.sh` on a Mac. The zips and dmgs (Apple chip and Intel) end up in `app/mac/`. Without a Mac, the GitHub workflow *Mac-Version* (`.github/workflows/mac.yml`) builds them, automatically for every release.
 - Files with `.Windows.cs` or `.Mac.cs` in their name belong to that version only; everything else is shared.
 - `test\` contains an end-to-end test with the official Azure SDK: `dotnet run --project test -- http://localhost:5050 <API key> <folder>`.
 
