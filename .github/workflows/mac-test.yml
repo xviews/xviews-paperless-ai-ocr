@@ -44,7 +44,7 @@ jobs:
         run: |
           cat > /tmp/fake_ai.py <<'EOF'
           # OpenAI-kompatibler Ersatzserver: ein Modell "test-vision", antwortet mit festem Text, speichert jedes Bild.
-          import base64, json, os, re, sys
+          import base64, json, os, sys
           from http.server import BaseHTTPRequestHandler, HTTPServer
           out = sys.argv[1]; count = 0
           class H(BaseHTTPRequestHandler):
@@ -64,11 +64,11 @@ jobs:
                       while (size := int(self.rfile.readline().strip(), 16)):
                           data += self.rfile.read(size); self.rfile.readline()
                       self.rfile.readline()
-                  data = data.decode()
                   count += 1
-                  m = re.search(r"data:image/png;base64,([A-Za-z0-9+/=]+)", data)
-                  if m:
-                      open(os.path.join(out, f"seite-{count}.png"), "wb").write(base64.b64decode(m.group(1)))
+                  for part in json.loads(data)["messages"][0]["content"]:
+                      if part.get("type") == "image_url":
+                          png = base64.b64decode(part["image_url"]["url"].split("base64,", 1)[1])
+                          open(os.path.join(out, f"seite-{count}.png"), "wb").write(png)
                   self.reply({"choices": [{"message": {"role": "assistant", "content": f"Hallo Paperless\nMac-Test Seite {count} äöüß"}}]})
           HTTPServer(("127.0.0.1", 8080), H).serve_forever()
           EOF
@@ -105,13 +105,14 @@ jobs:
       - name: App starten
         run: |
           python3 /tmp/fake_ai.py "$OUT" > "$OUT/ki-server.log" 2>&1 &
-          "/tmp/Xviews Paperless AI-OCR.app/Contents/MacOS/XviewsPaperlessAiOcr" --autostart > "$OUT/app-ausgabe.log" 2>&1 &
+          # Wie ein Doppelklick im Finder, damit macOS die Angaben der App (Info.plist) beachtet
+          open "/tmp/Xviews Paperless AI-OCR.app" --args --autostart
           for i in $(seq 60); do
             if curl -sf http://127.0.0.1:5050/ > "$OUT/start.txt"; then cat "$OUT/start.txt"; echo; exit 0; fi
             sleep 1
           done
           echo "::error::Die App antwortet nach 60 Sekunden nicht auf Port 5050"
-          cat "$OUT/app-ausgabe.log"; exit 1
+          exit 1
 
       - name: Schnittstelle prüfen
         run: |
@@ -164,8 +165,8 @@ jobs:
         if: always()
         run: |
           screencapture -x "$OUT/1-nach-dem-dokument.png" || echo "screencapture fehlgeschlagen"
-          # Zweiter Start bittet die laufende App, das Info-Fenster zu zeigen
-          "/tmp/Xviews Paperless AI-OCR.app/Contents/MacOS/XviewsPaperlessAiOcr" --autostart || true
+          # Zweites Öffnen meldet macOS der laufenden App, die dann das Info-Fenster zeigt
+          open "/tmp/Xviews Paperless AI-OCR.app"
           sleep 5
           screencapture -x "$OUT/2-info-fenster.png" || echo "screencapture fehlgeschlagen"
 

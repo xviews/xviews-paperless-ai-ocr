@@ -18,10 +18,10 @@ public sealed partial class AiClient(Settings settings)
     public const string Ollama = "ollama", OpenAi = "openai";
 
     /// <summary>Wählbare Server mit ihrer üblichen Adresse.</summary>
-    public static readonly (string Id, string Name, string DefaultUrl)[] Servers =
+    public static (string Id, string Name, string DefaultUrl)[] Servers =>
     [
         (Ollama, "Ollama", "http://127.0.0.1:11434"),
-        (OpenAi, "OpenAI-kompatibel (LM Studio, llama.cpp, vLLM …)", "http://127.0.0.1:1234"),
+        (OpenAi, T("OpenAI-kompatibel (LM Studio, llama.cpp, vLLM …)", "OpenAI-compatible (LM Studio, llama.cpp, vLLM …)"), "http://127.0.0.1:1234"),
     ];
 
     const string Prompt =
@@ -125,7 +125,8 @@ public sealed partial class AiClient(Settings settings)
     {
         if (await IsUpAsync(ct)) return;
         if (!IsOllama)
-            throw new InvalidOperationException($"Der KI-Server unter {Base} antwortet nicht. Bitte starten (LM Studio: Developer → Start Server).");
+            throw new InvalidOperationException(T($"Der KI-Server unter {Base} antwortet nicht. Bitte starten (LM Studio: Developer → Start Server).",
+                                                  $"The AI server at {Base} does not answer. Please start it (LM Studio: Developer → Start Server)."));
         if (!settings.StartOllamaOnDemand && !manual)
             throw new InvalidOperationException(T("Ollama läuft nicht. Das automatische Starten ist ausgeschaltet, bitte Ollama von Hand starten.", "Ollama is not running. Automatic start is switched off, please start Ollama by hand."));
         // Unter macOS ist die App ein Ordner (Ollama.app)
