@@ -79,7 +79,8 @@ sealed class Tray : IDisposable
         RefreshMenu();
 
         icon = new TrayIcon { Icon = App.Icon, ToolTipText = Program.Name, Menu = menu, IsVisible = true };
-        icon.Clicked += (_, _) => ToggleStatus();
+        // Nicht mitten im Rückruf des Symbols Fenster bauen, sondern gleich danach im UI-Thread
+        icon.Clicked += (_, _) => Dispatcher.UIThread.Post(OnIconClicked);
         TrayIcon.SetIcons(Avalonia.Application.Current!, [icon]);
 
         // Meldungen kommen aus dem Hintergrund, die Fenster gehören in den UI-Thread
@@ -165,10 +166,36 @@ sealed class Tray : IDisposable
         }
         // Der Klick aufs Symbol hat das Fenster eben schon geschlossen (Deactivated): nicht gleich wieder öffnen
         if (DateTime.Now - statusClosed < TimeSpan.FromMilliseconds(400)) return;
-        statusWindow = new StatusWindow(settings, store, ShowInfo);
-        statusWindow.Closed += (_, _) => { statusWindow = null; statusClosed = DateTime.Now; };
-        statusWindow.Show();
-        statusWindow.Activate();
+        var window = new StatusWindow(settings, store, ShowInfo);
+        statusWindow = window;
+        // Nur das eigene Fenster austragen, ein spät geschlossenes altes darf ein neues nicht verdrängen
+        window.Closed += (_, _) =>
+        {
+            if (statusWindow == window) statusWindow = null;
+            statusClosed = DateTime.Now;
+        };
+        window.Show();
+        window.Activate();
+    }
+
+    /// <summary>
+    /// Klick aufs Symbol, abgesichert: Eine Ausnahme im Rückruf des Symbols beendet sonst das ganze Tool
+    /// (27.10.2026: „Windowing backend wasn't properly initialized“ in Window.Show, nicht nachstellbar).
+    /// Dann geht nur das Fenster nicht auf, der Fehler steht im Protokoll.
+    /// </summary>
+    void OnIconClicked()
+    {
+        try { ToggleStatus(); }
+        catch (Exception e)
+        {
+            Log.Write($"Klick aufs Symbol fehlgeschlagen: {e}");
+            if (statusWindow is { } broken)
+            {
+                statusWindow = null;
+                try { broken.Close(); }
+                catch (InvalidOperationException) { }
+            }
+        }
     }
 
     void ShowUpdate()
