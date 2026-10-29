@@ -359,11 +359,16 @@ sealed class InfoWindow : Window
             if (startServer) await store.Ocr.EnsureServerAsync(cts.Token, manual: true);
             models = await store.Ocr.VisionModelsAsync(cts.Token);
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
+        // KeyNotFoundException: Unter der Adresse antwortet etwas, aber kein passender KI-Server (ohne Abfangen ging das Tool zu)
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or InvalidOperationException
+                                    or System.Text.Json.JsonException or KeyNotFoundException)
         {
             if (startServer)
             {
-                serverStatus.Text = "✕ " + e.Message;
+                serverStatus.Text = "✕ " + (e is KeyNotFoundException or System.Text.Json.JsonException
+                    ? T("Unter dieser Adresse antwortet kein passender KI-Server. Stimmen Server und Adresse?",
+                        "No matching AI server answers at this address. Are server and address right?")
+                    : e.Message);
                 serverStatus.Classes.Set("gut", false);
                 serverStatus.Classes.Set("schlecht", true);
             }

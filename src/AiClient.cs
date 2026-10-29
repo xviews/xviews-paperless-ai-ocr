@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -68,43 +69,88 @@ public sealed partial class AiClient(Settings settings)
         var request = new
         {
             model = settings.Model,
-            stream = false,
+            // Als Strom, damit eine Schleife schon beim Schreiben auffällt und nicht erst nach Minuten
+            stream = true,
             think = false,
             options,
             messages = new[] { new { role = "user", content = Prompt, images = new[] { image } } },
         };
-        using var response = await http.PostAsJsonAsync($"{Base}/api/chat", request, ct);
-        string body = await response.Content.ReadAsStringAsync(ct);
-        if (response.StatusCode == HttpStatusCode.NotFound && body.Contains("not found"))
-            throw new InvalidOperationException(MissingModel);
-        if (!response.IsSuccessStatusCode)
-            throw body.Contains("token repeat limit")
-                ? new RepeatLoopException($"Ollama {(int)response.StatusCode}: {body}")
-                : new InvalidOperationException($"Ollama {(int)response.StatusCode}: {body}");
-        using var json = JsonDocument.Parse(body);
-        string text = json.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
-        // Ganze Zeilen in Schleife (z. B. 2536 Mal „Datum  Datum  Datum“) bricht Ollama nicht ab
-        if (RepeatedLine(text) is { } line)
-            throw new RepeatLoopException($"Zeile {MaxSameLines} Mal oder öfter hintereinander: „{(line.Length > 60 ? line[..60] + "…" : line)}“");
-        return text;
+        // Das Zeitlimit des HttpClient endet mit den Kopfzeilen, darum ein eigenes für die ganze Seite
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(settings.PageTimeoutSeconds));
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Post, $"{Base}/api/chat") { Content = JsonContent.Create(request) };
+            using var response = await http.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                string body = await response.Content.ReadAsStringAsync(timeout.Token);
+                if (response.StatusCode == HttpStatusCode.NotFound && body.Contains("not found"))
+                    throw new InvalidOperationException(MissingModel);
+                throw OllamaError($"Ollama {(int)response.StatusCode}: {body}");
+            }
+            using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(timeout.Token));
+            var text = new StringBuilder();
+            var lines = new SameLines();
+            while (await reader.ReadLineAsync(timeout.Token) is { } chunk)
+            {
+                if (chunk == "") continue;
+                using var json = JsonDocument.Parse(chunk);
+                if (json.RootElement.TryGetProperty("error", out JsonElement error))
+                    throw OllamaError($"Ollama: {error.GetString()}");
+                string piece = json.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
+                text.Append(piece);
+                // Ganze Zeilen in Schleife (z. B. 2536 Mal „Datum  Datum  Datum“) bricht Ollama nicht ab.
+                // Verlassen wir die Schleife, schließt die Verbindung und Ollama hört auf zu rechnen.
+                if (lines.Add(piece) is { } line) throw RepeatedLine(line);
+            }
+            if (lines.Finish() is { } last) throw RepeatedLine(last);
+            return text.ToString();
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !ct.IsCancellationRequested)
+        {
+            throw new InvalidOperationException(T($"{ShortName} hat die Seite nicht in {settings.PageTimeoutSeconds} Sekunden gelesen.",
+                                                  $"{ShortName} did not read the page within {settings.PageTimeoutSeconds} seconds."));
+        }
     }
 
-    const int MaxSameLines = 20;
+    static InvalidOperationException OllamaError(string message) =>
+        message.Contains("token repeat limit") ? new RepeatLoopException(message) : new InvalidOperationException(message);
 
-    /// <summary>Eine Zeile, die mindestens <see cref="MaxSameLines"/> Mal direkt hintereinander steht, sonst null.</summary>
-    static string? RepeatedLine(string text)
+    static RepeatLoopException RepeatedLine(string line) =>
+        new($"Zeile {SameLines.Max} Mal hintereinander: „{(line.Length > 60 ? line[..60] + "…" : line)}“");
+
+    /// <summary>Zählt gleiche Zeilen direkt hintereinander, während die Antwort Stück für Stück kommt.</summary>
+    sealed class SameLines
     {
-        string? previous = null;
-        int count = 0;
-        foreach (string raw in text.Split('\n'))
+        public const int Max = 20;
+        readonly StringBuilder current = new();
+        string? previous;
+        int count;
+
+        /// <summary>Nimmt das nächste Stück; liefert die Zeile, sobald sie <see cref="Max"/> Mal hintereinander stand.</summary>
+        public string? Add(string piece)
         {
-            string line = raw.Trim();
-            if (line == "") continue;
+            foreach (char c in piece)
+            {
+                if (c != '\n') current.Append(c);
+                else if (EndLine() is { } line) return line;
+            }
+            return null;
+        }
+
+        /// <summary>Die letzte Zeile ohne Zeilenumbruch am Ende.</summary>
+        public string? Finish() => EndLine();
+
+        string? EndLine()
+        {
+            string line = current.ToString().Trim();
+            current.Clear();
+            if (line == "") return null;
             count = line == previous ? count + 1 : 1;
             previous = line;
-            if (count >= MaxSameLines) return line;
+            return count >= Max ? line : null;
         }
-        return null;
     }
 
     async Task<string> ChatOpenAiAsync(string image, CancellationToken ct)
