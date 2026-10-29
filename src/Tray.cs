@@ -74,7 +74,7 @@ sealed class Tray : IDisposable
         settings.Saved += RefreshMenuLater;
         Autostart.Changed += RefreshMenuLater;
         store.ContactChanged += RefreshMenuLater;
-        store.JobSucceeded += (_, _) => RefreshMenuLater();
+        store.JobSucceeded += (_, _, _) => RefreshMenuLater();
         store.JobFailed += _ => RefreshMenuLater();
         RefreshMenu();
 
@@ -96,12 +96,24 @@ sealed class Tray : IDisposable
                     T($"Paperless ({from}) hat ein Dokument mit einem falschen API-Schlüssel geschickt. Klicken, um den richtigen Schlüssel zu kopieren.",
                       $"Paperless ({from}) sent a document with a wrong API key. Click to copy the correct key."), ShowInfo, error: true, seconds: 15);
         });
-        store.JobSucceeded += (pages, duration) => Dispatcher.UIThread.Post(() =>
+        store.JobSucceeded += (pages, duration, empty) => Dispatcher.UIThread.Post(() =>
         {
-            if (settings.NotifyWhenDone)
-                Notification.Show(T("Dokument erkannt", "Document recognized"),
-                    T($"{pages} {(pages == 1 ? "Seite" : "Seiten")} in {duration.TotalSeconds:0} Sekunden gelesen und an Paperless zurückgegeben.",
-                      $"Read {pages} {(pages == 1 ? "page" : "pages")} in {duration.TotalSeconds:0} seconds and returned to Paperless."), ShowInfo);
+            string done = T($"{pages} {(pages == 1 ? "Seite" : "Seiten")} in {duration.TotalSeconds:0} Sekunden gelesen und an Paperless zurückgegeben.",
+                            $"Read {pages} {(pages == 1 ? "page" : "pages")} in {duration.TotalSeconds:0} seconds and returned to Paperless.");
+            if (empty.Length > 0)
+            {
+                // Eine Seite blieb ohne Text: zählt als Fehler, auch wenn fertige Dokumente nicht gemeldet werden
+                if (settings.NotifyErrors || settings.NotifyWhenDone)
+                {
+                    string list = string.Join(", ", empty);
+                    Notification.Show(T("Dokument erkannt, nicht ganz", "Document recognized, not completely"),
+                        done + " " + T($"{(empty.Length == 1 ? "Seite" : "Seiten")} {list} {(empty.Length == 1 ? "blieb" : "blieben")} ohne Text, weil das Modell sich dort immer wiederholt hat.",
+                                       $"{(empty.Length == 1 ? "Page" : "Pages")} {list} got no text because the model kept repeating itself there."),
+                        ShowInfo, error: true, seconds: 15);
+                }
+            }
+            else if (settings.NotifyWhenDone)
+                Notification.Show(T("Dokument erkannt", "Document recognized"), done, ShowInfo);
         });
 
         updates.Changed += ShowUpdate;

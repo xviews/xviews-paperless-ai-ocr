@@ -53,8 +53,8 @@ public sealed class JobStore(Settings settings)
         WrongKey?.Invoke(from);
     }
 
-    /// <summary>Meldet ein fertiges Dokument mit Seitenzahl und Dauer (läuft nicht im UI-Thread).</summary>
-    public event Action<int, TimeSpan>? JobSucceeded;
+    /// <summary>Meldet ein fertiges Dokument mit Seitenzahl, Dauer und Seiten ohne Text (läuft nicht im UI-Thread).</summary>
+    public event Action<int, TimeSpan, int[]>? JobSucceeded;
 
     /// <summary>Letzter Kontakt von Paperless hat sich geändert (läuft nicht im UI-Thread).</summary>
     public event Action? ContactChanged;
@@ -113,11 +113,20 @@ public sealed class JobStore(Settings settings)
             Log.Write($"Auftrag {job.Id[..8]}: {pages.Count} Seite(n), {document.Length / 1024} KB");
 
             var texts = new List<string>();
+            var empty = new List<int>();
             var content = new System.Text.StringBuilder();
             for (int i = 0; i < pages.Count; i++)
             {
                 var t0 = DateTime.Now;
-                var text = await ocr.ReadPageAsync(pages[i].Png, CancellationToken.None);
+                string text;
+                try { text = await ocr.ReadPageAsync(pages[i].Png, CancellationToken.None); }
+                catch (AiClient.RepeatLoopException e)
+                {
+                    // Auch der zweite Versuch hing fest: Seite ohne Text, der Rest des Dokuments geht trotzdem durch
+                    Log.Write($"  Seite {i + 1}/{pages.Count}: bleibt ohne Text ({e.Message})");
+                    text = "";
+                    empty.Add(i + 1);
+                }
                 texts.Add(text);
                 if (i > 0) content.Append('\n');
                 int offset = content.Length;
@@ -133,7 +142,7 @@ public sealed class JobStore(Settings settings)
             Log.Write($"Auftrag {job.Id[..8]} fertig in {(DateTime.Now - started).TotalSeconds:F0}s");
             Interlocked.Increment(ref recognized);
             SetContact(new PaperlessContact(DateTime.Now, job.From, ContactResult.Succeeded, pages.Count, Duration: DateTime.Now - started));
-            JobSucceeded?.Invoke(pages.Count, DateTime.Now - started);
+            JobSucceeded?.Invoke(pages.Count, DateTime.Now - started, [.. empty]);
         }
         catch (Exception e)
         {

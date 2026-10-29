@@ -156,7 +156,7 @@ Tesseract, the built-in text recognition of Paperless-ngx, stumbles over tables,
 <summary><b>Under the hood</b></summary>
 
 - The tool imitates the REST interface of *Azure AI Document Intelligence* (API version 2024-11-30, model `prebuilt-read`): `POST …:analyze` accepts the document, `GET …/analyzeResults/{id}` returns status and text, `GET …/analyzeResults/{id}/pdf` the searchable PDF.
-- PDFs are turned into images (200 dpi), on Windows with built-in system functions, on the Mac with PDFium, and sent to the AI server page by page (Ollama: `/api/chat` without "thinking", otherwise `/v1/chat/completions`; temperature 0).
+- PDFs are turned into images (200 dpi), on Windows with built-in system functions, on the Mac with PDFium, and sent to the AI server page by page (Ollama: `/api/chat` without "thinking", otherwise `/v1/chat/completions`; temperature 0). If the model gets stuck repeating itself with Ollama (e.g. on dashed lines), the tool reads the page once more with a little leeway; if that fails too, only that page stays without text and the notification says so.
 - The resulting PDF contains the original pages plus an invisible text layer.
 - Settings and logs are stored in `%APPDATA%\Xviews Paperless AI-OCR` on Windows and in `~/Library/Application Support/Xviews Paperless AI-OCR` on the Mac.
 

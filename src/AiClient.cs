@@ -50,23 +50,35 @@ public sealed partial class AiClient(Settings settings)
             Log.Write($"Kein Modell gewählt, nehme {settings.Model}");
         }
         string image = Convert.ToBase64String(png);
-        return Clean(IsOllama ? await ChatOllamaAsync(image, ct) : await ChatOpenAiAsync(image, ct));
+        if (!IsOllama) return Clean(await ChatOpenAiAsync(image, ct));
+        try { return Clean(await ChatOllamaAsync(image, false, ct)); }
+        catch (RepeatLoopException)
+        {
+            // Mit Temperatur 0 schreibt das Modell z. B. gestrichelte Linien endlos ab, bis Ollama abbricht
+            Log.Write("  Ollama hing in einer Wiederholung fest, zweiter Versuch mit Wiederholungsbremse");
+            return Clean(await ChatOllamaAsync(image, true, ct));
+        }
     }
 
-    async Task<string> ChatOllamaAsync(string image, CancellationToken ct)
+    async Task<string> ChatOllamaAsync(string image, bool loose, CancellationToken ct)
     {
+        object options = loose
+            ? new { temperature = 0.3, repeat_penalty = 1.15, num_ctx = 16384 }
+            : new { temperature = 0, num_ctx = 16384 };
         var request = new
         {
             model = settings.Model,
             stream = false,
             think = false,
-            options = new { temperature = 0, num_ctx = 16384 },
+            options,
             messages = new[] { new { role = "user", content = Prompt, images = new[] { image } } },
         };
         using var response = await http.PostAsJsonAsync($"{Base}/api/chat", request, ct);
         string body = await response.Content.ReadAsStringAsync(ct);
         if (response.StatusCode == HttpStatusCode.NotFound && body.Contains("not found"))
             throw new InvalidOperationException(MissingModel);
+        if (body.Contains("token repeat limit"))
+            throw new RepeatLoopException($"Ollama {(int)response.StatusCode}: {body}");
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException($"Ollama {(int)response.StatusCode}: {body}");
         using var json = JsonDocument.Parse(body);
@@ -257,6 +269,9 @@ public sealed partial class AiClient(Settings settings)
         try { return await IsUpAsync(cts.Token); }
         catch (TaskCanceledException) { return false; }
     }
+
+    /// <summary>Ollama hat abgebrochen, weil das Modell dieselben Zeichen immer wiederholt hat.</summary>
+    public sealed class RepeatLoopException(string message) : InvalidOperationException(message);
 
     async Task<bool> IsUpAsync(CancellationToken ct)
     {

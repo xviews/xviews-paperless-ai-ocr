@@ -154,7 +154,7 @@ Tesseract, die eingebaute Texterkennung von Paperless-ngx, stolpert über Tabell
 <summary><b>Wie es funktioniert</b></summary>
 
 - Das Tool bildet die REST-Schnittstelle von *Azure AI Document Intelligence* nach (API-Version 2024-11-30, Modell `prebuilt-read`): `POST …:analyze` nimmt das Dokument an, `GET …/analyzeResults/{id}` liefert Status und Text, `GET …/analyzeResults/{id}/pdf` das durchsuchbare PDF.
-- PDFs werden in Bilder umgewandelt (200 dpi), unter Windows mit Bordmitteln, am Mac mit PDFium, und Seite für Seite an den KI-Server geschickt (Ollama: `/api/chat` ohne „Denken“, sonst `/v1/chat/completions`; Temperatur 0).
+- PDFs werden in Bilder umgewandelt (200 dpi), unter Windows mit Bordmitteln, am Mac mit PDFium, und Seite für Seite an den KI-Server geschickt (Ollama: `/api/chat` ohne „Denken“, sonst `/v1/chat/completions`; Temperatur 0). Verrennt sich das Modell bei Ollama in einer Wiederholung (z. B. an gestrichelten Linien), liest das Tool die Seite noch einmal mit etwas Spielraum; klappt auch das nicht, bleibt nur diese Seite ohne Text und die Meldung sagt es.
 - Das Ergebnis-PDF enthält die Originalseiten plus eine unsichtbare Textebene.
 - Einstellungen und Protokolle liegen unter Windows in `%APPDATA%\Xviews Paperless AI-OCR`, am Mac in `~/Library/Application Support/Xviews Paperless AI-OCR`.
 
