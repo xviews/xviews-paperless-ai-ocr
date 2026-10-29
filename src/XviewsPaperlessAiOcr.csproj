@@ -14,7 +14,7 @@
     <RootNamespace>XviewsPaperlessAiOcr</RootNamespace>
     <InvariantGlobalization>false</InvariantGlobalization>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Product>Xviews Paperless AI-OCR</Product>
     <Company>Xviews</Company>
     <Copyright>© 2026 Xviews</Copyright>
