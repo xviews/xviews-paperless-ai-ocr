@@ -202,14 +202,18 @@ jobs:
       - name: Ollama mit Schleifen prüfen
         run: |
           # App mit Ollama-Einstellung neu starten (Einstellungen werden nur beim Start gelesen)
-          pkill -f XviewsPaperlessAiOcr || true
-          for i in $(seq 20); do pgrep -f XviewsPaperlessAiOcr > /dev/null || break; sleep 1; done
+          # Auf ein einfaches SIGTERM beendet sich die App nicht, darum hart; Socket-Reste räumt sie beim Start selbst weg
+          pkill -9 -f XviewsPaperlessAiOcr || true
+          for i in $(seq 20); do curl -sf http://127.0.0.1:5050/ > /dev/null || break; sleep 1; done
+          curl -sf http://127.0.0.1:5050/ > /dev/null && { echo "::error::Die App läuft nach pkill weiter"; exit 1; }
           dir="$HOME/Library/Application Support/Xviews Paperless AI-OCR"
           cat > "$dir/einstellungen.json" <<EOF
           { "Port": 5050, "ApiKey": "$KEY", "Server": "ollama", "ServerUrl": "http://127.0.0.1:8080", "Model": "test-vision", "StartOllamaOnDemand": false }
           EOF
           open "/tmp/Xviews Paperless AI-OCR.app" --args --autostart
           for i in $(seq 60); do curl -sf http://127.0.0.1:5050/ > /dev/null && break; sleep 1; done
+          grep -q "Modell test-vision" "$dir/logs/"*.log && [ "$(grep -c gestartet "$dir/logs/"*.log)" -ge 2 ] \
+            || { echo "::error::Die App ist nicht neu gestartet"; exit 1; }
 
           api=http://127.0.0.1:5050/documentintelligence/documentModels/prebuilt-read
           loc=$(curl -s -D - -o /dev/null -X POST -H "Ocp-Apim-Subscription-Key: $KEY" -H 'Content-Type: application/json' \
