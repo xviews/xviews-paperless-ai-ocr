@@ -2,6 +2,8 @@
 # Baut die App, startet sie aus der DMG, schickt wie Paperless einen zweiseitigen Testbrief über die Azure-Schnittstelle
 # und prüft Text, Seitengrößen und das durchsuchbare PDF. Statt eines echten KI-Modells antwortet ein kleiner
 # OpenAI-kompatibler Ersatzserver mit festem Text und speichert die Seitenbilder, die PDFium gerendert hat.
+# Danach startet die App neu mit Ollama-Einstellung; derselbe Ersatzserver spielt Ollama mit beiden Arten von
+# Schleife (endlose Zeilen, Fehler 500 „token repeat limit reached“) und prüft Abbruch und zweiten Versuch.
 # Bildschirmfotos, Seitenbilder, Ergebnis-PDF und Protokoll liegen danach als Download unter dem Lauf.
 name: Mac-Test
 
@@ -43,33 +45,69 @@ jobs:
       - name: Ersatz-KI-Server und Testbrief vorbereiten
         run: |
           cat > /tmp/fake_ai.py <<'EOF'
-          # OpenAI-kompatibler Ersatzserver: ein Modell "test-vision", antwortet mit festem Text, speichert jedes Bild.
-          import base64, json, os, sys
+          # Ersatzserver in zwei Rollen, je nach Pfad:
+          # OpenAI-kompatibel (/v1/...): ein Modell "test-vision", fester Text, speichert jedes Bild.
+          # Ollama (/api/...): antwortet als Strom wie Ollama und spielt beide Schleifen durch:
+          #   Seite 1 erst endlos "Datum  Datum  Datum" (das Tool muss selbst abbrechen), dann sauber;
+          #   Seite 2 erst Fehler 500 "token repeat limit reached" (wie Ollama), dann sauber.
+          import base64, json, os, sys, time
           from http.server import BaseHTTPRequestHandler, HTTPServer
-          out = sys.argv[1]; count = 0
+          out = sys.argv[1]; count = 0; ollama = 0
+          def note(text):
+              print(text, flush=True)
           class H(BaseHTTPRequestHandler):
-              def reply(self, obj):
+              def reply(self, obj, status=200):
                   body = json.dumps(obj).encode()
-                  self.send_response(200); self.send_header("Content-Type", "application/json")
+                  self.send_response(status); self.send_header("Content-Type", "application/json")
                   self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
-              def do_GET(self):
-                  self.reply({"object": "list", "data": [{"id": "test-vision", "object": "model"}]})
-              def do_POST(self):
-                  global count
+              def body(self):
                   # .NET schickt JSON ohne Content-Length in Stücken (chunked)
                   if self.headers["Content-Length"]:
-                      data = self.rfile.read(int(self.headers["Content-Length"]))
-                  else:
-                      data = b""
-                      while (size := int(self.rfile.readline().strip(), 16)):
-                          data += self.rfile.read(size); self.rfile.readline()
-                      self.rfile.readline()
+                      return self.rfile.read(int(self.headers["Content-Length"]))
+                  data = b""
+                  while (size := int(self.rfile.readline().strip(), 16)):
+                      data += self.rfile.read(size); self.rfile.readline()
+                  self.rfile.readline()
+                  return data
+              def do_GET(self):
+                  if self.path == "/api/version": self.reply({"version": "0.0.0-test"})
+                  elif self.path == "/api/tags": self.reply({"models": [{"name": "test-vision"}]})
+                  else: self.reply({"object": "list", "data": [{"id": "test-vision", "object": "model"}]})
+              def do_POST(self):
+                  global count, ollama
+                  data = json.loads(self.body())
+                  if self.path == "/api/show": return self.reply({"capabilities": ["completion", "vision"]})
+                  if self.path == "/api/chat": return self.chat_ollama(data)
                   count += 1
-                  for part in json.loads(data)["messages"][0]["content"]:
+                  for part in data["messages"][0]["content"]:
                       if part.get("type") == "image_url":
                           png = base64.b64decode(part["image_url"]["url"].split("base64,", 1)[1])
                           open(os.path.join(out, f"seite-{count}.png"), "wb").write(png)
                   self.reply({"choices": [{"message": {"role": "assistant", "content": f"Hallo Paperless\nMac-Test Seite {count} äöüß"}}]})
+              def chat_ollama(self, data):
+                  global ollama
+                  ollama += 1; o = data.get("options", {})
+                  note(f"ollama {ollama}: stream={data.get('stream')} temperature={o.get('temperature')} repeat_penalty={o.get('repeat_penalty')}")
+                  if ollama == 3:
+                      return self.reply({"error": "prediction aborted, token repeat limit reached"}, 500)
+                  # Ohne Content-Length endet die Antwort mit dem Schließen der Verbindung, wie ein Strom
+                  self.send_response(200); self.send_header("Content-Type", "application/x-ndjson"); self.end_headers()
+                  def piece(text, done=False):
+                      self.wfile.write((json.dumps({"message": {"role": "assistant", "content": text}, "done": done}) + "\n").encode())
+                      self.wfile.flush()
+                  if ollama == 1:
+                      start = time.time()
+                      try:
+                          for i in range(2000):
+                              piece("Datum  Datum  Datum\n"); time.sleep(0.05)
+                          note("ollama 1: alle 2000 Zeilen geschickt, NICHT abgebrochen")
+                      except (BrokenPipeError, ConnectionResetError):
+                          note(f"ollama 1: vom Tool abgebrochen nach {i} Zeilen und {time.time() - start:.1f} s")
+                      return
+                  page = 1 if ollama == 2 else 2
+                  for text in ["Hallo Paperless\n", f"Ollama Seite {page} ", "äöüß"]:
+                      piece(text)
+                  piece("", done=True)
           HTTPServer(("127.0.0.1", 8080), H).serve_forever()
           EOF
 
@@ -160,6 +198,46 @@ jobs:
             # A4 bei 200 dpi: 1654 x 2339
             [ "$w" -ge 1600 ] && [ "$w" -le 1700 ] && [ "$h" -ge 2280 ] && [ "$h" -le 2400 ] || { echo "::error::Seite $n hat $w x $h"; exit 1; }
           done
+
+      - name: Ollama mit Schleifen prüfen
+        run: |
+          # App mit Ollama-Einstellung neu starten (Einstellungen werden nur beim Start gelesen)
+          pkill -f XviewsPaperlessAiOcr || true
+          for i in $(seq 20); do pgrep -f XviewsPaperlessAiOcr > /dev/null || break; sleep 1; done
+          dir="$HOME/Library/Application Support/Xviews Paperless AI-OCR"
+          cat > "$dir/einstellungen.json" <<EOF
+          { "Port": 5050, "ApiKey": "$KEY", "Server": "ollama", "ServerUrl": "http://127.0.0.1:8080", "Model": "test-vision", "StartOllamaOnDemand": false }
+          EOF
+          open "/tmp/Xviews Paperless AI-OCR.app" --args --autostart
+          for i in $(seq 60); do curl -sf http://127.0.0.1:5050/ > /dev/null && break; sleep 1; done
+
+          api=http://127.0.0.1:5050/documentintelligence/documentModels/prebuilt-read
+          loc=$(curl -s -D - -o /dev/null -X POST -H "Ocp-Apim-Subscription-Key: $KEY" -H 'Content-Type: application/json' \
+                --data-binary @/tmp/body.json "$api:analyze?api-version=2024-11-30" | awk -F': ' 'tolower($1)=="operation-location"{print $2}' | tr -d '\r')
+          [ -n "$loc" ] || { echo "::error::Keine Operation-Location"; exit 1; }
+          for i in $(seq 60); do
+            sleep 2
+            curl -s -H "Ocp-Apim-Subscription-Key: $KEY" "$loc" > "$OUT/ergebnis-ollama.json"
+            status=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' "$OUT/ergebnis-ollama.json")
+            [ "$status" = succeeded ] || [ "$status" = failed ] && break
+          done
+          echo "--- Ersatz-Ollama ---"; cat "$OUT/ki-server.log"
+          python3 - "$OUT/ergebnis-ollama.json" "$OUT/ki-server.log" <<'EOF'
+          import json, re, sys
+          r = json.load(open(sys.argv[1])); server = open(sys.argv[2]).read()
+          assert r["status"] == "succeeded", f"Status {r['status']}: {r.get('error')}"
+          c = r["analyzeResult"]["content"]
+          assert "Ollama Seite 1 äöüß" in c and "Ollama Seite 2 äöüß" in c, c
+          assert "Datum" not in c, "Text der Schleife ist im Ergebnis gelandet"
+          m = re.search(r"ollama 1: vom Tool abgebrochen nach (\d+) Zeilen", server)
+          assert m and int(m.group(1)) < 100, "Das Tool hat die Zeilen-Schleife nicht früh abgebrochen"
+          assert "ollama 1: stream=True temperature=0 repeat_penalty=None" in server, "Erster Versuch nicht mit Temperatur 0 als Strom"
+          for n in (2, 4):
+              assert f"ollama {n}: stream=True temperature=0.3 repeat_penalty=1.15" in server, f"Zweiter Versuch {n} ohne Wiederholungsbremse"
+          print(f"Ollama stimmt: Schleife nach {m.group(1)} Zeilen abgebrochen, Fehler 500 abgefangen, zweiter Versuch mit Bremse, beide Seiten gelesen")
+          EOF
+          n=$(cat "$dir/logs/"*.log | grep -c "zweiter Versuch" || true)
+          [ "$n" = 2 ] || { echo "::error::Im Protokoll stehen $n statt 2 zweite Versuche"; exit 1; }
 
       - name: Bildschirmfotos
         if: always()
