@@ -55,7 +55,7 @@ public sealed partial class AiClient(Settings settings)
         catch (RepeatLoopException)
         {
             // Mit Temperatur 0 schreibt das Modell z. B. gestrichelte Linien endlos ab, bis Ollama abbricht
-            Log.Write("  Ollama hing in einer Wiederholung fest, zweiter Versuch mit Wiederholungsbremse");
+            Log.Write($"  Ollama hing in einer Wiederholung fest, zweiter Versuch mit Temperatur {settings.RetryTemperature} und Wiederholungsbremse {settings.RetryRepeatPenalty}");
             return Clean(await ChatOllamaAsync(image, true, ct));
         }
     }
@@ -63,7 +63,7 @@ public sealed partial class AiClient(Settings settings)
     async Task<string> ChatOllamaAsync(string image, bool loose, CancellationToken ct)
     {
         object options = loose
-            ? new { temperature = 0.3, repeat_penalty = 1.15, num_ctx = 16384 }
+            ? new { temperature = settings.RetryTemperature, repeat_penalty = settings.RetryRepeatPenalty, num_ctx = 16384 }
             : new { temperature = 0, num_ctx = 16384 };
         var request = new
         {

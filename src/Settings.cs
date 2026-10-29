@@ -24,6 +24,9 @@ public sealed class Settings
     public string Model { get; set; } = "";
     public int RenderDpi { get; set; } = 200;
     public int PageTimeoutSeconds { get; set; } = 300;
+    /// <summary>Zweiter Versuch, wenn Ollama „token repeat limit reached“ meldet. Nicht im Info-Fenster, nur hier.</summary>
+    public double RetryTemperature { get; set; } = 0.3;
+    public double RetryRepeatPenalty { get; set; } = 1.15;
     public bool NotifyWhenDone { get; set; } = true;
     public bool NotifyErrors { get; set; } = true;
     public bool StartOllamaOnDemand { get; set; } = true;
@@ -57,14 +60,16 @@ public sealed class Settings
     public static Settings Load()
     {
         string? source = File.Exists(FilePath) ? FilePath : File.Exists(OldFilePath) ? OldFilePath : null;
-        Settings s = source is null ? new Settings() : JsonSerializer.Deserialize<Settings>(File.ReadAllText(source)) ?? new Settings();
+        string text = source is null ? "" : File.ReadAllText(source);
+        Settings s = source is null ? new Settings() : JsonSerializer.Deserialize<Settings>(text) ?? new Settings();
         s.FirstStart = source is null;
 
         // Beim ersten Start einen zufälligen Schlüssel erzeugen, den Paperless als "API-Key" mitschickt.
         bool newKey = string.IsNullOrWhiteSpace(s.ApiKey);
         if (newKey)
             s.ApiKey = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
-        if (newKey || source != FilePath) s.Save();
+        // Neue Felder gleich hineinschreiben, damit man sie in der Datei findet
+        if (newKey || source != FilePath || !text.Contains(nameof(RetryRepeatPenalty))) s.Save();
         return s;
     }
 
