@@ -77,12 +77,34 @@ public sealed partial class AiClient(Settings settings)
         string body = await response.Content.ReadAsStringAsync(ct);
         if (response.StatusCode == HttpStatusCode.NotFound && body.Contains("not found"))
             throw new InvalidOperationException(MissingModel);
-        if (body.Contains("token repeat limit"))
-            throw new RepeatLoopException($"Ollama {(int)response.StatusCode}: {body}");
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Ollama {(int)response.StatusCode}: {body}");
+            throw body.Contains("token repeat limit")
+                ? new RepeatLoopException($"Ollama {(int)response.StatusCode}: {body}")
+                : new InvalidOperationException($"Ollama {(int)response.StatusCode}: {body}");
         using var json = JsonDocument.Parse(body);
-        return json.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
+        string text = json.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
+        // Ganze Zeilen in Schleife (z. B. 2536 Mal „Datum  Datum  Datum“) bricht Ollama nicht ab
+        if (RepeatedLine(text) is { } line)
+            throw new RepeatLoopException($"Zeile {MaxSameLines} Mal oder öfter hintereinander: „{(line.Length > 60 ? line[..60] + "…" : line)}“");
+        return text;
+    }
+
+    const int MaxSameLines = 20;
+
+    /// <summary>Eine Zeile, die mindestens <see cref="MaxSameLines"/> Mal direkt hintereinander steht, sonst null.</summary>
+    static string? RepeatedLine(string text)
+    {
+        string? previous = null;
+        int count = 0;
+        foreach (string raw in text.Split('\n'))
+        {
+            string line = raw.Trim();
+            if (line == "") continue;
+            count = line == previous ? count + 1 : 1;
+            previous = line;
+            if (count >= MaxSameLines) return line;
+        }
+        return null;
     }
 
     async Task<string> ChatOpenAiAsync(string image, CancellationToken ct)
